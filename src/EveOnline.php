@@ -47,6 +47,7 @@ class EveOnline {
      */
     public static $state;
     public static $accessToken;
+    public static $refreshToken;
 
     public function __construct() {
         $this->client = new Client([
@@ -157,6 +158,7 @@ class EveOnline {
             $data = json_decode($response->getBody()->getContents());
             if (isset($data->access_token)) {
                 $this->setAccessToken($data->access_token);
+                $this->setRefreshToken($data->refresh_token);
             }
             return [
                 "status" => 200,
@@ -173,6 +175,14 @@ class EveOnline {
 
     public function getAccessToken() {
         return self::$accessToken;
+    }
+
+    public function setRefreshToken($token) {
+        self::$refreshToken = $token;
+    }
+
+    public function getRefreshToken() {
+        return self::$refreshToken;
     }
 
     /*
