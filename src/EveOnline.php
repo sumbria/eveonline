@@ -222,4 +222,8 @@ class EveOnline {
         ];
     }
 
+    public function getCharacter() {
+        return $this->call('verify');
+    }
+
 }

@@ -20,7 +20,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Sumbria\\EveOnline\\": "src/"
+            "Sumbria\\EveOnline\\": "src/",
+            "Sumbria\\Esi\\": "src/Esi/"
         }
     }
 }
