@@ -1,0 +1,26 @@
+{
+    "name": "sumbria/eveonline",
+    "description": "PHP SDK for Eve Online",
+    "keywords": ["eveonline", "eveonline php sdk", "eveonline composer"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Balbinder Sumbria",
+            "email": "dev@cubytes.com"
+        }
+    ],
+    "type": "package",
+    "version": "1.0",
+    "require": {
+        "php": ">=5.4",
+        "guzzlehttp/guzzle": "^6.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "5.2.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sumbria\\EveOnline\\": "src/"
+        }
+    }
+}
