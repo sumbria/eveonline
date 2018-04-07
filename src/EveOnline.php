@@ -29,11 +29,15 @@ class EveOnline {
     /*
      * @var string The EveOnline client id to be used for api requests. A string identifier for the client, provided by CCP.
      */
-    public static $clienId;
+    public static $clientId;
+    /*
+     * @var string The EveOnline client secret to be used for generating access. A string identifier for the client, provided by CCP.
+     */
+    public static $clientSecret;
     /*
      * @var array Guzzle client handle for api calls.
      */
-    public static $client;
+    protected $client;
     /*
      * @var array The EveOnline scopes to be used for api requests. The requested scopes as a space delimited string.
      */
@@ -45,7 +49,7 @@ class EveOnline {
     public static $accessToken;
 
     public function __construct() {
-        self::$client = new Client([
+        $this->client = new Client([
             'verify' => false
         ]);
     }
@@ -54,23 +58,39 @@ class EveOnline {
       @return string Sets EveOnline client id to be used for api requests. A string identifier for the client, provided by CCP.
      */
 
-    public static function setClientId($client_id) {
-        self::$clienId = $client_id;
+    public function setClientId($client_id) {
+        self::$clientId = $client_id;
     }
 
     /*
      * @return string The EveOnline client id to be used for api requests. A string identifier for the client, provided by CCP.
      */
 
-    public static function getClientId() {
-        return self::$clienId;
+    public function getClientId() {
+        return self::$clientId;
+    }
+
+    /*
+      @return string Sets EveOnline client secret to be used for api requests. A string identifier for the client, provided by CCP.
+     */
+
+    public function setClientSecret($secret) {
+        self::$clientSecret = $secret;
+    }
+
+    /*
+     * @return string The EveOnline client secret to be used for api requests. A string identifier for the client, provided by CCP.
+     */
+
+    public function getClientSecret() {
+        return self::$clientSecret;
     }
 
     /*
      * @return string Sets redirect url used for api request callback. After authentication the user will be redirected to this URL on your website.
      */
 
-    public static function setRedirectUri($redirect_uri) {
+    public function setRedirectUri($redirect_uri) {
         self::$redirectUri = urlencode($redirect_uri);
     }
 
@@ -78,13 +98,13 @@ class EveOnline {
      * @return array Sets scopes to be used for api requests. The requested scopes as a space delimited string.
      */
 
-    public static function setScope($scopes = []) {
+    public function setScope($scopes = []) {
         if (is_array($scopes) && count($scopes) > 0) {
             $scopes_string = '';
             foreach ($scopes as $scope) {
                 $scopes_string .= $scope . ' ';
             }
-            self::$scope = urlencode($scopes_string);
+            self::$scope = urlencode(trim($scopes_string));
         } else {
             return [
                 "status" => 401,
@@ -97,7 +117,7 @@ class EveOnline {
      * @return string The EveOnline scopes to be used for api requests. The requested scopes as a space delimited string.
      */
 
-    public static function getScope() {
+    public function getScope() {
         return self::$scope;
     }
 
@@ -105,7 +125,7 @@ class EveOnline {
      * @var string Sets opaque value used by the client to maintain state between the request and callback. The SSO includes this value when redirecting back to the 3rd party website. While not required, it is important to use this for security reasons. http://www.thread-safe.com/2014/05/the-correct-use-of-state-parameter-in.html explains why the state parameter is needed.
      */
 
-    public static function setState($state) {
+    public function setState($state) {
         self::$state = $state;
     }
 
@@ -113,7 +133,7 @@ class EveOnline {
      * @var string An opaque value used by the client to maintain state between the request and callback. The SSO includes this value when redirecting back to the 3rd party website. While not required, it is important to use this for security reasons. http://www.thread-safe.com/2014/05/the-correct-use-of-state-parameter-in.html explains why the state parameter is needed.
      */
 
-    public static function getState() {
+    public function getState() {
         return self::$state;
     }
 
@@ -121,15 +141,37 @@ class EveOnline {
      * @var string The redirect url used for api request callback. After authentication the user will be redirected to this URL on your website.
      */
 
-    public static function getRedirectUri() {
+    public function getRedirectUri() {
         return self::$redirectUri;
     }
 
-    public static function setAccessToken($accessToken) {
-        self::$accessToken = $accessToken;
+    public function generateAccessToken($code) {
+        $bearer = base64_encode($this->getClientId() . ':' . $this->getClientSecret());
+        $post = [
+            'grant_type' => 'authorization_code',
+            'code' => $code
+        ];
+        try {
+            $headers = ['Authorization' => 'Basic ' . $bearer];
+            $response = $this->client->request('post', self::$oauth_url . 'token', ['query' => $post, 'headers' => $headers]);
+            $data = json_decode($response->getBody()->getContents());
+            if (isset($data->access_token)) {
+                $this->setAccessToken($data->access_token);
+            }
+            return [
+                "status" => 200,
+                "data" => $data
+            ];
+        } catch (RequestException $e) {
+            return $this->error($e);
+        }
     }
 
-    public static function getAccessToken() {
+    public function setAccessToken($token) {
+        self::$accessToken = $token;
+    }
+
+    public function getAccessToken() {
         return self::$accessToken;
     }
 
@@ -138,17 +180,17 @@ class EveOnline {
      */
 
     public function getAuthUrl() {
-        $auth_url = self::$oauth_url . 'authorize/?response_type=' . self::$responseType . '&redirect_uri=' . self::getRedirectUri() . '&client_id=' . self::getClientId() . '&scope=' . self::getScope();
-        if (isset(self::getState()) && self::getState()) {
-            $auth_url .= '&state=' . self::getState();
+        $auth_url = self::$oauth_url . 'authorize/?response_type=' . self::$responseType . '&redirect_uri=' . $this->getRedirectUri() . '&client_id=' . $this->getClientId() . '&scope=' . $this->getScope();
+        if (null !== self::getState()) {
+            $auth_url .= '&state=' . $this->getState();
         }
         return $auth_url;
     }
 
-    protected function call($url, $method = 'get', $post = [], $is_header = true) {
+    public function call($url, $method = 'get', $post = [], $is_header = true) {
         try {
             if ($is_header) {
-                $accessToken = self::getAccessToken();
+                $accessToken = $this->getAccessToken();
                 if (!$accessToken) {
                     return [
                         "status" => 401,
@@ -159,7 +201,7 @@ class EveOnline {
             } else {
                 $headers = [];
             }
-            $response = $this->client->request($method, self::$base_url . $url, ['query' => $post, 'headers' => $headers]);
+            $response = $this->client->request($method, self::$oauth_url . $url, ['query' => $post, 'headers' => $headers]);
             return $this->success($response);
         } catch (RequestException $e) {
             return $this->error($e);
