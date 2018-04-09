@@ -169,6 +169,29 @@ class EveOnline {
         }
     }
 
+    public function generateAccessTokenByRefreshToken($token) {
+        $bearer = base64_encode($this->getClientId() . ':' . $this->getClientSecret());
+        $post = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $token
+        ];
+        try {
+            $headers = ['Authorization' => 'Basic ' . $bearer];
+            $response = $this->client->request('post', self::$oauth_url . 'token', ['query' => $post, 'headers' => $headers]);
+            $data = json_decode($response->getBody()->getContents());
+            if (isset($data->access_token)) {
+                $this->setAccessToken($data->access_token);
+                $this->setRefreshToken($data->refresh_token);
+            }
+            return [
+                "status" => 200,
+                "data" => $data
+            ];
+        } catch (RequestException $e) {
+            return $this->error($e);
+        }
+    }
+
     public function setAccessToken($token) {
         self::$accessToken = $token;
     }

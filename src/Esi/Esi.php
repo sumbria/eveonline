@@ -65,9 +65,19 @@ class Esi {
         }
     }
 
+    public function callUrl($url, $method = 'get') {
+        try {
+            $response = $this->client->request($method, self::$base_url . $url);
+            return $this->success($response);
+        } catch (RequestException $e) {
+            return $this->error($e);
+        }
+    }
+
     protected function success($response) {
         return [
             "status" => $response->getStatusCode(),
+            "headers" => $response->getHeaders(),
             "data" => json_decode($response->getBody()->getContents())
         ];
     }
