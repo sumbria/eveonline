@@ -43,7 +43,7 @@ class Esi {
         return self::$accessToken;
     }
 
-    public function call($url, $method = 'get', $post = [], $is_header = true) {
+    public function call($url, $method = 'get', $post = [], $is_header = true, $page = 0) {
         try {
             if ($is_header) {
                 $accessToken = $this->getAccessToken();
@@ -58,6 +58,9 @@ class Esi {
                 $headers = [];
             }
             $endpoint = self::$base_url . $url . '/?datasource=' . $this->getDataSource();
+            if ($page) {
+                $endpoint = self::$base_url . $url . '/?datasource=' . $this->getDataSource() . '&page=' . $page;
+            }
             $response = $this->client->request($method, $endpoint, ['query' => $post, 'headers' => $headers]);
             return $this->success($response);
         } catch (RequestException $e) {
@@ -65,9 +68,13 @@ class Esi {
         }
     }
 
-    public function callUrl($url, $method = 'get') {
+    public function callUrl($url, $method = 'get', $page = 0) {
+        $endpoint = self::$base_url . $url . '/?datasource=' . $this->getDataSource();
+        if ($page) {
+            $endpoint = self::$base_url . $url . '/?datasource=' . $this->getDataSource() . '&page=' . $page;
+        }
         try {
-            $response = $this->client->request($method, self::$base_url . $url);
+            $response = $this->client->request($method, $endpoint);
             return $this->success($response);
         } catch (RequestException $e) {
             return $this->error($e);
